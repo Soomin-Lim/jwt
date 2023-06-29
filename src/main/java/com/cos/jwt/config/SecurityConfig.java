@@ -1,6 +1,7 @@
 package com.cos.jwt.config;
 
 import com.cos.jwt.filter.MyFilter1;
+import com.cos.jwt.filter.MyFilter2;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -9,9 +10,12 @@ import org.springframework.security.config.annotation.web.configuration.EnableWe
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.www.BasicAuthenticationFilter;
+import org.springframework.security.web.context.SecurityContextPersistenceFilter;
+import org.springframework.security.web.session.DisableEncodeUrlFilter;
 import org.springframework.web.filter.CorsFilter;
 
 @Configuration
+//@EnableWebSecurity(debug = true)
 //@EnableWebSecurity // 시큐리티 활성화 -> 기본 스프링 필터체인에 등록
 @RequiredArgsConstructor
 public class SecurityConfig {
@@ -20,7 +24,8 @@ public class SecurityConfig {
 
     @Bean
     SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
-        return http.csrf().disable()
+        return http.addFilterBefore(new MyFilter2(), DisableEncodeUrlFilter.class)
+                .csrf().disable()
                 .sessionManagement().sessionCreationPolicy(SessionCreationPolicy.STATELESS) // 세션 사용 x
                 .and()
                 .addFilter(corsFilter) // 모든 요청은 이 필터를 거친다
