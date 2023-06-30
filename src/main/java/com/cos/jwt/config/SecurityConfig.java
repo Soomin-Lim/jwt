@@ -1,12 +1,15 @@
 package com.cos.jwt.config;
 
+import com.cos.jwt.config.jwt.JwtAuthenticationFilter;
 import com.cos.jwt.filter.MyFilter1;
 import com.cos.jwt.filter.MyFilter2;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
+import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.www.BasicAuthenticationFilter;
@@ -24,13 +27,16 @@ public class SecurityConfig {
 
     @Bean
     SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
-        return http.addFilterBefore(new MyFilter2(), DisableEncodeUrlFilter.class)
+        // http.addFilterBefore(new MyFilter2(), DisableEncodeUrlFilter.class)
+        return http
                 .csrf().disable()
                 .sessionManagement().sessionCreationPolicy(SessionCreationPolicy.STATELESS) // 세션 사용 x
                 .and()
                 .addFilter(corsFilter) // 모든 요청은 이 필터를 거친다
                 .formLogin().disable() // 폼(태크) 로그인 x
                 .httpBasic().disable() // 기본적인 http 로그인 방식 x
+                .apply(new MyCustomDsl()) // 커스텀 필터 등록
+                .and()
                 .authorizeRequests()
                 .antMatchers("/api/v1/user/**")
                 .access("hasRole('ROLE_USER') or hasRole('ROLE_MANAGER') or hasRole('ROLE_ADMIN')")
@@ -40,5 +46,13 @@ public class SecurityConfig {
                 .access("hasRole('ROLE_ADMIN')")
                 .anyRequest().permitAll()
                 .and().build();
+    }
+
+    public class MyCustomDsl extends AbstractHttpConfigurer<MyCustomDsl, HttpSecurity> {
+        @Override
+        public void configure(HttpSecurity http) throws Exception {
+            AuthenticationManager authenticationManager = http.getSharedObject(AuthenticationManager.class);
+            http.addFilter(new JwtAuthenticationFilter(authenticationManager));
+        }
     }
 }
